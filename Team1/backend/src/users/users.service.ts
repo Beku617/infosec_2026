@@ -1,19 +1,8 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isValidObjectId, Model } from 'mongoose';
+import { Model } from 'mongoose';
 
 import { User, UserDocument, UserRole } from './user.schema';
-
-export type AdminUserSummary = {
-  id: string;
-  username: string;
-  email: string;
-  role: UserRole;
-  isLocked: boolean;
-  failedLoginAttempts: number;
-  failedAttempts: number;
-  createdAt: Date;
-};
 
 @Injectable()
 export class UsersService {
@@ -58,44 +47,6 @@ export class UsersService {
   async hasRole(role: UserRole): Promise<boolean> {
     const user = await this.userModel.findOne({ role }).select({ _id: 1 }).lean();
     return Boolean(user);
-  }
-
-  async listForAdmin(): Promise<AdminUserSummary[]> {
-    const users = await this.userModel
-      .find({})
-      .select({
-        username: 1,
-        email: 1,
-        role: 1,
-        isLocked: 1,
-        failedLoginAttempts: 1,
-        failedAttempts: 1,
-        createdAt: 1
-      })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    return users.map((user) => ({
-      id: user._id.toString(),
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      isLocked: user.isLocked,
-      failedLoginAttempts: this.getFailedAttemptCount(user),
-      failedAttempts: this.getFailedAttemptCount(user),
-      createdAt: user.createdAt
-    }));
-  }
-
-  async deleteById(userId: string): Promise<void> {
-    if (!isValidObjectId(userId)) {
-      throw new NotFoundException('User not found');
-    }
-
-    const deleted = await this.userModel.findByIdAndDelete(userId).exec();
-    if (!deleted) {
-      throw new NotFoundException('User not found');
-    }
   }
 
   async unlockIfExpired(user: UserDocument): Promise<UserDocument> {

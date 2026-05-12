@@ -19,7 +19,6 @@ import { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 
 import { AuthService } from './auth.service';
-import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { BootstrapAdminDto } from './dto/bootstrap-admin.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateTranscriptDto } from './dto/create-transcript.dto';
@@ -129,11 +128,11 @@ export class AuthController {
 
   @Post('lectures/upload')
   @Roles('professor')
-  upload(@Req() req: Request & { user: JwtUser }) {
-    const transcript = this.authService.logUpload(req.user.sub, this.getIp(req));
+  async upload(@Req() req: Request & { user: JwtUser }) {
+    const transcript = await this.authService.logUpload(req.user.sub, this.getIp(req));
     return {
-      message: 'upload simulated',
-      transcriptId: transcript.id
+      message: 'Successfully uploaded',
+      transcript
     };
   }
 
@@ -152,31 +151,6 @@ export class AuthController {
     return this.authService.getTranscriptById(transcriptId, req.user, this.getIp(req));
   }
 
-  @Get('admin/users')
-  @Roles('admin')
-  async listUsers() {
-    return this.authService.adminListUsers();
-  }
-
-  @Post('admin/users')
-  @Roles('admin')
-  async createUserByAdmin(
-    @Body() createUserDto: AdminCreateUserDto,
-    @Req() req: Request & { user: JwtUser }
-  ) {
-    return this.authService.adminCreateUser(createUserDto, req.user.sub, this.getIp(req));
-  }
-
-  @Delete('admin/users/:userId')
-  @Roles('admin')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteUserByAdmin(
-    @Param('userId') userId: string,
-    @Req() req: Request & { user: JwtUser }
-  ) {
-    await this.authService.adminDeleteUser(userId, req.user.sub, this.getIp(req));
-  }
-
   @Post('admin/transcripts')
   @Roles('admin')
   async createTranscriptByAdmin(
@@ -189,11 +163,11 @@ export class AuthController {
   @Delete('admin/transcripts/:transcriptId')
   @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteTranscriptByAdmin(
+  async deleteTranscriptByAdmin(
     @Param('transcriptId', ParseIntPipe) transcriptId: number,
     @Req() req: Request & { user: JwtUser }
   ) {
-    this.authService.deleteTranscript(transcriptId, req.user.sub, this.getIp(req));
+    await this.authService.deleteTranscript(transcriptId, req.user.sub, this.getIp(req));
   }
 
   private setAuthCookies(res: Response, accessToken: string, refreshToken: string): void {

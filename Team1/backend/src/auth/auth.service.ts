@@ -14,14 +14,14 @@ import { createHash, randomUUID } from 'crypto';
 import { Model } from 'mongoose';
 
 import { UserDocument, UserRole } from '../users/user.schema';
-import { AdminUserSummary, UsersService } from '../users/users.service';
-import { AdminCreateUserDto } from './dto/admin-create-user.dto';
+import { UsersService } from '../users/users.service';
 import { BootstrapAdminDto } from './dto/bootstrap-admin.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateTranscriptDto } from './dto/create-transcript.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshToken, RefreshTokenDocument } from './refresh-token.schema';
+import { Transcript, TranscriptDocument } from './transcript.schema';
 
 type AuthResult = {
   accessToken: string;
@@ -51,23 +51,15 @@ export type TranscriptRecord = {
 export class AuthService {
   private readonly accessTokenTtlSeconds = 15 * 60;
   private readonly refreshTokenTtlSeconds = 7 * 24 * 60 * 60;
-  private transcriptSequence = 2;
-  private transcripts: TranscriptRecord[] = [
-    {
-      id: 1,
-      text: 'sample transcript',
-      createdBy: 'system',
-      allowedRoles: ['admin', 'student'],
-      createdAt: new Date().toISOString()
-    }
-  ];
 
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     @InjectModel(RefreshToken.name)
-    private readonly refreshTokenModel: Model<RefreshTokenDocument>
+    private readonly refreshTokenModel: Model<RefreshTokenDocument>,
+    @InjectModel(Transcript.name)
+    private readonly transcriptModel: Model<TranscriptDocument>
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{ username: string; role: UserRole }> {
@@ -129,52 +121,6 @@ export class AuthService {
       username: user.username,
       role: user.role
     };
-  }
-
-  async adminCreateUser(
-    createUserDto: AdminCreateUserDto,
-    actorUserId: string,
-    ip: string
-  ): Promise<{ username: string; role: UserRole }> {
-    const passwordHash = await bcrypt.hash(createUserDto.password, 12);
-    const user = await this.usersService.create({
-      username: createUserDto.username,
-      email: createUserDto.email,
-      passwordHash,
-      role: createUserDto.role
-    });
-
-    this.logEvent({
-      userId: actorUserId,
-      action: 'ADMIN_USER_CREATE',
-      result: 'OK',
-      ip
-    });
-
-    return {
-      username: user.username,
-      role: user.role
-    };
-  }
-
-  async adminListUsers(): Promise<AdminUserSummary[]> {
-    return this.usersService.listForAdmin();
-  }
-
-  async adminDeleteUser(targetUserId: string, actorUserId: string, ip: string): Promise<void> {
-    if (targetUserId === actorUserId) {
-      throw new ForbiddenException('Admin cannot delete own account');
-    }
-
-    await this.revokeAllTokens(targetUserId);
-    await this.usersService.deleteById(targetUserId);
-
-    this.logEvent({
-      userId: actorUserId,
-      action: 'ADMIN_USER_DELETE',
-      result: 'OK',
-      ip
-    });
   }
 
   async login(loginDto: LoginDto, ip: string): Promise<AuthResult> {
@@ -419,15 +365,15 @@ export class AuthService {
     });
   }
 
-  logUpload(userId: string, ip: string): TranscriptRecord {
-    const transcript: TranscriptRecord = {
-      id: this.transcriptSequence++,
-      text: 'Lecture uploaded. Transcript processing queued.',
+  async logUpload(userId: string, ip: string): Promise<TranscriptRecord> {
+    const transcriptId = await this.getNextTranscriptId();
+    const lectureTitle = await this.getNextLectureTitle();
+    const transcript = await this.transcriptModel.create({
+      id: transcriptId,
+      text: lectureTitle,
       createdBy: userId,
-      allowedRoles: ['admin'],
-      createdAt: new Date().toISOString()
-    };
-    this.transcripts = [transcript, ...this.transcripts];
+      allowedRoles: ['admin', 'student']
+    });
 
     this.logEvent({
       userId,
@@ -436,7 +382,7 @@ export class AuthService {
       ip
     });
 
-    return transcript;
+    return this.toTranscriptRecord(transcript);
   }
 
   logTranscriptRead(userId: string, ip: string, endpoint: string): void {
@@ -449,26 +395,26 @@ export class AuthService {
     });
   }
 
-  getTranscripts(user: { sub: string; role: UserRole }, ip: string): TranscriptRecord[] {
-    const visibleTranscripts = this.transcripts.filter((transcript) =>
-      this.canReadTranscript(transcript, user.sub, user.role)
-    );
+  async getTranscripts(user: { sub: string; role: UserRole }, ip: string): Promise<TranscriptRecord[]> {
+    const query = this.buildTranscriptVisibilityQuery(user.sub, user.role);
+    const transcripts = await this.transcriptModel.find(query).sort({ id: -1 }).exec();
 
     this.logTranscriptRead(user.sub, ip, 'GET /transcripts');
-    return visibleTranscripts;
+    return transcripts.map((transcript) => this.toTranscriptRecord(transcript));
   }
 
-  getTranscriptById(
+  async getTranscriptById(
     transcriptId: number,
     user: { sub: string; role: UserRole },
     ip: string
-  ): TranscriptRecord {
-    const transcript = this.transcripts.find((record) => record.id === transcriptId);
+  ): Promise<TranscriptRecord> {
+    const transcript = await this.transcriptModel.findOne({ id: transcriptId }).exec();
     if (!transcript) {
       throw new HttpException('Transcript not found', 404);
     }
 
-    if (!this.canReadTranscript(transcript, user.sub, user.role)) {
+    const transcriptRecord = this.toTranscriptRecord(transcript);
+    if (!this.canReadTranscript(transcriptRecord, user.sub, user.role)) {
       this.logEvent({
         userId: user.sub,
         role: user.role,
@@ -482,28 +428,26 @@ export class AuthService {
     }
 
     this.logTranscriptRead(user.sub, ip, `GET /transcripts/${transcriptId}`);
-    return transcript;
+    return transcriptRecord;
   }
 
-  createTranscript(
+  async createTranscript(
     createTranscriptDto: CreateTranscriptDto,
     actorUserId: string,
     ip: string
-  ): TranscriptRecord {
+  ): Promise<TranscriptRecord> {
     const transcriptText = createTranscriptDto.text.trim();
     if (!transcriptText) {
       throw new HttpException('Transcript text is required', 400);
     }
 
-    const transcript: TranscriptRecord = {
-      id: this.transcriptSequence++,
+    const transcriptId = await this.getNextTranscriptId();
+    const transcript = await this.transcriptModel.create({
+      id: transcriptId,
       text: transcriptText,
       createdBy: actorUserId,
-      allowedRoles: createTranscriptDto.allowStudentAccess ? ['admin', 'student'] : ['admin'],
-      createdAt: new Date().toISOString()
-    };
-
-    this.transcripts = [transcript, ...this.transcripts];
+      allowedRoles: createTranscriptDto.allowStudentAccess ? ['admin', 'student'] : ['admin']
+    });
     this.logEvent({
       userId: actorUserId,
       action: 'ADMIN_TRANSCRIPT_CREATE',
@@ -511,22 +455,67 @@ export class AuthService {
       ip
     });
 
-    return transcript;
+    return this.toTranscriptRecord(transcript);
   }
 
-  deleteTranscript(transcriptId: number, actorUserId: string, ip: string): void {
-    const existing = this.transcripts.some((transcript) => transcript.id === transcriptId);
-    if (!existing) {
+  async deleteTranscript(transcriptId: number, actorUserId: string, ip: string): Promise<void> {
+    const deletion = await this.transcriptModel.deleteOne({ id: transcriptId }).exec();
+    if (deletion.deletedCount === 0) {
       throw new HttpException('Transcript not found', 404);
     }
 
-    this.transcripts = this.transcripts.filter((transcript) => transcript.id !== transcriptId);
     this.logEvent({
       userId: actorUserId,
       action: 'ADMIN_TRANSCRIPT_DELETE',
       result: 'OK',
       ip
     });
+  }
+
+  private buildTranscriptVisibilityQuery(userId: string, role: UserRole): Record<string, string> {
+    if (role === 'admin') {
+      return {};
+    }
+
+    if (role === 'professor') {
+      return { createdBy: userId };
+    }
+
+    return { allowedRoles: 'student' };
+  }
+
+  private toTranscriptRecord(transcript: TranscriptDocument): TranscriptRecord {
+    return {
+      id: transcript.id,
+      text: transcript.text,
+      createdBy: transcript.createdBy,
+      allowedRoles: transcript.allowedRoles,
+      createdAt: transcript.createdAt.toISOString()
+    };
+  }
+
+  private async getNextTranscriptId(): Promise<number> {
+    const latest = await this.transcriptModel.findOne().sort({ id: -1 }).exec();
+    return (latest?.id ?? 0) + 1;
+  }
+
+  private async getNextLectureTitle(): Promise<string> {
+    const lectureRecords = await this.transcriptModel.find({ text: /^Lecture \d+$/i }).select('text').exec();
+    let maxLectureNumber = 0;
+
+    for (const record of lectureRecords) {
+      const match = /^Lecture\s+(\d+)$/i.exec(record.text.trim());
+      if (!match) {
+        continue;
+      }
+
+      const lectureNumber = Number.parseInt(match[1], 10);
+      if (!Number.isNaN(lectureNumber) && lectureNumber > maxLectureNumber) {
+        maxLectureNumber = lectureNumber;
+      }
+    }
+
+    return `Lecture ${maxLectureNumber + 1}`;
   }
 
   private async issueTokens(user: UserDocument): Promise<{ accessToken: string; refreshToken: string }> {
