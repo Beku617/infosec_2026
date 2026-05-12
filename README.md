@@ -1,2 +1,16 @@
-# infosec_2026
-Repo for the Information Security 2026 Spring class
+# STT IAM Module
+
+## Backend
+```bash
+cd backend
+npm install
+npm run start:dev
+```
+
+## Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+

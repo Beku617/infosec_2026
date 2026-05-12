@@ -1,0 +1,23 @@
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:25 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:25 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +26ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:25 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:25 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:25 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:25 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:25 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseCoreModule dependencies initialized[39m[38;5;3m +9706ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +21ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMongooseModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/}:[39m[38;5;3m +74ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/register, POST} route[39m[38;5;3m +6ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/refresh, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/logout, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/lectures/upload, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/transcripts, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 11920  - [39m05/11/2026, 1:01:35 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +5ms[39m
+{"timestamp":"2026-05-11T05:01:38.533Z","userId":"6a0162b00dc31fb245a731f4","action":"LOGIN_SUCCESS","result":"OK","ip":"::ffff:127.0.0.1"}
+{"timestamp":"2026-05-11T05:01:39.350Z","userId":"6a0162b00dc31fb245a731f4","action":"TOKEN_REFRESH","result":"OK","ip":"::ffff:127.0.0.1"}
