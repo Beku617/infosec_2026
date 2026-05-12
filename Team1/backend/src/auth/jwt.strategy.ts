@@ -7,10 +7,8 @@ import { Request } from 'express';
 import { JwtUser } from './interfaces/jwt-user.interface';
 
 type JwtPayload = {
-  sub: string;
-  username: string;
+  userId: string;
   role: JwtUser['role'];
-  type: JwtUser['type'];
 };
 
 @Injectable()
@@ -34,15 +32,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: JwtPayload): JwtUser {
-    if (payload.type !== 'access') {
-      throw new UnauthorizedException('Invalid token type');
+    if (!payload.userId || !payload.role) {
+      throw new UnauthorizedException('Invalid access token payload');
     }
 
     return {
-      sub: payload.sub,
-      username: payload.username,
-      role: payload.role,
-      type: payload.type
+      sub: payload.userId,
+      role: payload.role
     };
   }
 }

@@ -42,17 +42,7 @@ export class RolesGuard implements CanActivate {
     request: Request & { user?: JwtUser },
     requiredRoles: string[] | undefined
   ): void {
-    console.log(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        userId: request.user?.sub ?? null,
-        role: request.user?.role ?? null,
-        endpoint: `${request.method} ${request.originalUrl ?? request.url}`,
-        requiredRoles: requiredRoles ?? [],
-        action: 'ACCESS_DENIED',
-        result: 'DENY',
-        ip: request.ip ?? 'unknown'
-      })
-    );
+    void request;
+    void requiredRoles;
   }
 }

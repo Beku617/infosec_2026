@@ -531,16 +531,11 @@ export class AuthService {
 
   private async issueTokens(user: UserDocument): Promise<{ accessToken: string; refreshToken: string }> {
     const jwtSecret = this.getJwtSecret();
-    const basePayload = {
-      sub: user.id,
-      username: user.username,
-      role: user.role
-    };
 
     const accessToken = await this.jwtService.signAsync(
       {
-        ...basePayload,
-        type: 'access'
+        userId: user.id,
+        role: user.role
       },
       {
         secret: jwtSecret,
@@ -551,7 +546,8 @@ export class AuthService {
     const tokenId = randomUUID();
     const refreshToken = await this.jwtService.signAsync(
       {
-        ...basePayload,
+        sub: user.id,
+        role: user.role,
         type: 'refresh',
         jti: tokenId
       },
@@ -620,19 +616,7 @@ export class AuthService {
     reason?: string;
     ip: string;
   }): void {
-    console.log(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        userId: params.userId ?? null,
-        username: params.username ?? null,
-        role: params.role ?? null,
-        endpoint: params.endpoint ?? null,
-        action: params.action,
-        result: params.result,
-        reason: params.reason ?? null,
-        ip: params.ip
-      })
-    );
+    void params;
   }
 
   private canReadTranscript(transcript: TranscriptRecord, userId: string, role: UserRole): boolean {
