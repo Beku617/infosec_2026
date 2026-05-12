@@ -1,12 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-export type UserRole = 'professor' | 'student';
+export const USER_ROLES = ['admin', 'professor', 'student'] as const;
+export type UserRole = (typeof USER_ROLES)[number];
 
 @Schema({
   timestamps: {
     createdAt: true,
-    updatedAt: false
+    updatedAt: true
   }
 })
 export class User {
@@ -19,7 +20,7 @@ export class User {
   @Prop({ required: true })
   passwordHash!: string;
 
-  @Prop({ required: true, enum: ['professor', 'student'] })
+  @Prop({ required: true, enum: USER_ROLES })
   role!: UserRole;
 
   @Prop({ default: false })
@@ -29,9 +30,10 @@ export class User {
   lockUntil!: Date | null;
 
   @Prop({ default: 0 })
-  failedAttempts!: number;
+  failedLoginAttempts!: number;
 
   createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export type UserDocument = HydratedDocument<User>;

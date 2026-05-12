@@ -20,6 +20,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!jwtSecret) {
       throw new UnauthorizedException('JWT_SECRET is not configured');
     }
+    if (Buffer.byteLength(jwtSecret, 'utf8') < 32) {
+      throw new UnauthorizedException('JWT_SECRET must be at least 32 bytes');
+    }
 
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([

@@ -9,37 +9,24 @@ import {
 } from '@nestjs/throttler';
 import { Request } from 'express';
 
-import { UsersService } from '../users/users.service';
-
 @Injectable()
 export class LoginThrottlerGuard extends ThrottlerGuard {
   constructor(
     @Inject(getOptionsToken()) options: ThrottlerModuleOptions,
     @Inject(getStorageToken()) storageService: ThrottlerStorage,
-    reflector: Reflector,
-    private readonly usersService: UsersService
+    reflector: Reflector
   ) {
     super(options, storageService, reflector);
   }
 
-  protected async shouldSkip(context: Parameters<ThrottlerGuard['shouldSkip']>[0]): Promise<boolean> {
-    const skippedByBase = await super.shouldSkip(context);
-    if (skippedByBase) {
-      return true;
-    }
+  protected async getTracker(req: Request & { body?: { username?: string } }): Promise<string> {
+    const rawUsername = req.body?.username;
+    const normalizedUsername =
+      typeof rawUsername === 'string' && rawUsername.trim().length > 0
+        ? rawUsername.trim().toLowerCase()
+        : 'unknown-user';
+    const ip = req.ip ?? req.socket?.remoteAddress ?? 'unknown-ip';
 
-    const req = context.switchToHttp().getRequest<Request & { body?: { username?: string } }>();
-    const username = req.body?.username;
-    if (!username) {
-      return false;
-    }
-
-    const user = await this.usersService.findByUsername(username);
-    if (!user) {
-      return false;
-    }
-
-    await this.usersService.unlockIfExpired(user);
-    return this.usersService.isCurrentlyLocked(user);
+    return `${ip}:${normalizedUsername}`;
   }
 }

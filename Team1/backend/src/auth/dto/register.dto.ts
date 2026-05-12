@@ -1,6 +1,7 @@
-import { IsEmail, IsIn, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 
-import { UserRole } from '../../users/user.schema';
+export const PUBLIC_REGISTER_ROLES = ['professor', 'student'] as const;
+export type PublicRegisterRole = (typeof PUBLIC_REGISTER_ROLES)[number];
 
 export class RegisterDto {
   @IsString()
@@ -12,8 +13,12 @@ export class RegisterDto {
 
   @IsString()
   @MinLength(8)
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/, {
+    message: 'Password must include uppercase, lowercase, and number'
+  })
   password!: string;
 
-  @IsIn(['professor', 'student'])
-  role!: UserRole;
+  @IsOptional()
+  @IsIn(PUBLIC_REGISTER_ROLES)
+  role: PublicRegisterRole = 'student';
 }
